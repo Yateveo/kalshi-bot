@@ -1234,9 +1234,11 @@ git commit -m "feat: add Telegram notifier"
 
 **Interfaces:**
 - Consumes: `config.Config` (Task 1), all of `storage` (Task 2), `risk_guard.should_stop_loss`/`should_reverse_exit`/`size_position`/`apply_ceiling` (Task 3), all of `scanner` (Task 4), `analyst.analyze_market` (Task 5), `executor_paper.execute_paper_trade`/`close_paper_trade` (Task 6), `notifier.send_message`/`format_trade_alert` (Task 7).
-- Produces: `main.run_cycle(cfg, conn, claude_client) -> dict` (keys `cycle_id`, `trades_opened`, `equity_usd`, `reserved_usd`), `main.main() -> None` (real entrypoint, checks `STOP` file, loads config, opens `trading.db`, runs one cycle).
+- Produces: `main.compute_floor_reached(conn, current_equity_usd: float, floor_usd: float) -> bool`, `main.run_cycle(cfg, conn, claude_client) -> dict` (keys `cycle_id`, `trades_opened`, `equity_usd`, `reserved_usd`), `main.main() -> None` (real entrypoint, checks `STOP` file, loads config, opens `trading.db`, runs one cycle).
 
 Per spec, open positions exit on **either** a price-based stop-loss **or** a confidence reversal — so each open position gets a fresh (cheap, single-market) Claude read every cycle, separate from the shortlist's new-opportunity calls.
+
+**Ruling (from Task 3's review):** `risk_guard.size_position`'s `floor_reached` parameter must be a **sticky latch** — "has equity ever reached floor_usd" — not a live "is current equity right now >= floor_usd" check. A naive live check has two bugs: (1) on the very first cycle ever, equity is seeded to exactly `floor_usd`, so a live check would immediately latch `True` and block all trading forever (headroom = 0); (2) after the floor is genuinely reached once, a later losing streak that drops equity back below `floor_usd` would un-latch it, silently turning the floor guard off exactly when it matters most. `compute_floor_reached` fixes both: on a database with no prior `equity_history` rows (the very first cycle), it returns `False` (the starting stake is naturally at risk, per spec). On every later cycle, it returns `True` if either the historical max equity ever recorded, or this cycle's current equity, is `>= floor_usd` — sticky because the historical `MAX` query only grows, and immediate because it also checks the live value so the guard engages the same cycle equity first reaches the floor, not one cycle late.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1362,6 +1364,32 @@ def test_run_cycle_exits_on_confidence_reversal_without_hitting_stop_loss(monkey
     result = main_module.run_cycle(FakeCfg(), conn, fake_client)
 
     assert storage.get_open_trades(conn) == []
+
+
+def test_compute_floor_reached_is_false_on_the_very_first_cycle():
+    import main as main_module
+
+    conn = storage.init_db(":memory:")  # no equity_history rows yet
+
+    assert main_module.compute_floor_reached(conn, current_equity_usd=50.0, floor_usd=50.0) is False
+
+
+def test_compute_floor_reached_latches_true_and_survives_a_later_dip():
+    import main as main_module
+
+    conn = storage.init_db(":memory:")
+    # cycle 1: seed equity recorded below the floor (a loss happened)
+    storage.record_equity(conn, "2026-08-25T00:00:00+00:00", 40.0, 0.0)
+    assert main_module.compute_floor_reached(conn, current_equity_usd=40.0, floor_usd=50.0) is False
+
+    # cycle 2: equity recovers to exactly the floor -- latch engages immediately,
+    # using this cycle's live equity even before it's persisted
+    assert main_module.compute_floor_reached(conn, current_equity_usd=50.0, floor_usd=50.0) is True
+    storage.record_equity(conn, "2026-08-25T00:10:00+00:00", 50.0, 0.0)
+
+    # cycle 3: a later losing streak drops equity back below the floor --
+    # the latch must stay True (sticky), not un-latch
+    assert main_module.compute_floor_reached(conn, current_equity_usd=35.0, floor_usd=50.0) is True
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -1386,6 +1414,25 @@ import scanner
 import storage
 
 STOP_FILE = "STOP"
+
+
+def compute_floor_reached(conn, current_equity_usd: float, floor_usd: float) -> bool:
+    """Sticky latch: True once equity has ever reached floor_usd.
+
+    On the very first cycle ever (no equity_history rows yet), returns
+    False -- the seed capital is the starting stake, naturally at risk,
+    not yet "recovered" principal. On every later cycle, returns True if
+    either the historical max equity ever recorded, or the current
+    cycle's live equity, is >= floor_usd. This is sticky (a later losing
+    streak can't un-latch it, since MAX only grows) and immediate (it
+    engages the same cycle equity first reaches the floor, not one cycle
+    late).
+    """
+    row = conn.execute("SELECT COUNT(*) AS n, MAX(equity_usd) AS m FROM equity_history").fetchone()
+    if row["n"] == 0:
+        return False
+    historical_max = row["m"]
+    return historical_max >= floor_usd or current_equity_usd >= floor_usd
 
 
 def run_cycle(cfg, conn, claude_client) -> dict:
@@ -1426,7 +1473,7 @@ def run_cycle(cfg, conn, claude_client) -> dict:
     shortlist = scanner.shortlist_candidates(markets, cfg.mispricing_threshold_pct, cfg.shortlist_size)
     cycle_id = storage.record_cycle(conn, ts, len(markets), json.dumps([m.market_id for m in shortlist]))
 
-    floor_reached = equity_usd >= cfg.floor_usd
+    floor_reached = compute_floor_reached(conn, equity_usd, cfg.floor_usd)
     trades_opened = 0
     for market in shortlist:
         mispricing_pct = scanner.compute_mispricing_pct(market)
