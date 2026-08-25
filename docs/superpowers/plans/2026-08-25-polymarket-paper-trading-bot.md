@@ -1748,4 +1748,5 @@ Per the user's preference to adjust as we go rather than lock everything up fron
 
 - **Daily Telegram summary** (spec asked for trade alerts + one daily digest; this plan wires trade/error alerts only — a daily summary is a small addition to `notifier.py` + a scheduled once-a-day check in `main.py`).
 - **Live executor wiring** (`executor_live.py`), Polygon wallet setup, and any real-money flip — explicitly out of scope until the paper week is reviewed, per the spec.
+- **Config-level validation that `floor_usd <= ceiling_usd`.** Task 3's review found that `risk_guard.apply_ceiling`'s sweep clamp (added to fix money-fabrication via negative `reserved_usd`) can still overstate tradable equity if `floor_usd > ceiling_usd` — a misconfiguration `config.py` doesn't currently reject. Parked because this plan is paper-mode only (no real money at risk) and the default config is safe; **must be fixed with a `config.py` load-time check before any live-trading task is scoped.**
 - Anything from the spec's own "Open items deferred to later phases" section (ceiling-sweep-to-real-wallet automation, dashboard/UI beyond Telegram).
