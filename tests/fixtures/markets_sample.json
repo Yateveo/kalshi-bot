@@ -1,0 +1,18 @@
+[
+  {
+    "id": "0x1",
+    "question": "Will it rain in NYC tomorrow?",
+    "outcomePrices": ["0.42"],
+    "volume24hr": 15000.0,
+    "oneHourPriceChange": "0.30",
+    "description": "Resolves YES if NOAA reports measurable precipitation."
+  },
+  {
+    "id": "0x2",
+    "question": "Will BTC close above $120k on Friday?",
+    "outcomePrices": ["0.55"],
+    "volume24hr": 500000.0,
+    "oneHourPriceChange": "0.54",
+    "description": "Resolves YES if Coinbase BTC-USD close >= 120000 on Friday."
+  }
+]
