@@ -21,6 +21,21 @@ def test_kelly_fraction_rejects_out_of_range_confidence():
         risk_guard.kelly_fraction(confidence=1.5, cap_pct=6.0)
 
 
+def test_kelly_fraction_rejects_zero_cap_pct():
+    with pytest.raises(ValueError):
+        risk_guard.kelly_fraction(confidence=0.8, cap_pct=0.0)
+
+
+def test_kelly_fraction_rejects_negative_cap_pct():
+    with pytest.raises(ValueError):
+        risk_guard.kelly_fraction(confidence=0.8, cap_pct=-6.0)
+
+
+def test_kelly_fraction_rejects_cap_pct_above_100():
+    with pytest.raises(ValueError):
+        risk_guard.kelly_fraction(confidence=0.8, cap_pct=101.0)
+
+
 def test_size_position_before_floor_reached_uses_full_kelly_size():
     result = risk_guard.size_position(
         equity_usd=50.0, confidence=0.8, kelly_cap_pct=6.0,
@@ -81,6 +96,16 @@ def test_apply_ceiling_accumulates_reserved_across_calls():
     )
     assert equity == 50.0
     assert reserved == 56.0
+
+
+def test_apply_ceiling_misconfigured_floor_above_ceiling_does_not_fabricate_money():
+    # floor_usd > ceiling_usd is a misconfiguration; the sweep must never go
+    # negative (which would inflate tradable equity above actual equity).
+    equity, reserved = risk_guard.apply_ceiling(
+        equity_usd=80.0, reserved_usd=0.0, ceiling_usd=75.0, floor_usd=100.0,
+    )
+    assert equity == 100.0
+    assert reserved == 0.0
 
 
 def test_should_stop_loss_triggers_past_threshold():

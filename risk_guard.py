@@ -10,6 +10,8 @@ def kelly_fraction(confidence: float, cap_pct: float) -> float:
     """
     if not 0.0 <= confidence <= 1.0:
         raise ValueError(f"confidence must be in [0, 1], got {confidence}")
+    if not 0.0 < cap_pct <= 100.0:
+        raise ValueError(f"cap_pct must be in (0, 100], got {cap_pct}")
     raw = max(0.0, 2 * confidence - 1)
     return min(raw, cap_pct / 100.0)
 
@@ -24,6 +26,19 @@ def size_position(
     equity_usd: float, confidence: float, kelly_cap_pct: float,
     floor_usd: float, floor_reached: bool,
 ) -> SizingResult:
+    """Size a new position using Kelly-capped equity, respecting the floor guard.
+
+    floor_reached is a sticky latch, not a live comparison: it must mean
+    "has equity ever reached floor_usd", and once True it must stay True
+    forever for the life of the account, even if equity later dips back
+    below floor_usd after a losing streak. Callers MUST compute and persist
+    this as a monotonic value (e.g. a flag set once and never cleared) —
+    NOT as a per-cycle check like `equity_usd >= floor_usd` recomputed fresh
+    each call. A naive live comparison would let the floor guard silently
+    switch off again whenever equity recovers above the floor and then
+    drops back below it, defeating the floor guarantee this function exists
+    to enforce.
+    """
     fraction = kelly_fraction(confidence, kelly_cap_pct)
     proposed_size = equity_usd * fraction
 
@@ -46,7 +61,11 @@ def apply_ceiling(
     into the non-tradable reserved balance. Returns (tradable_equity, reserved_usd)."""
     if equity_usd < ceiling_usd:
         return (equity_usd, reserved_usd)
-    sweep = equity_usd - floor_usd
+    # Clamp: if floor_usd > ceiling_usd (a misconfiguration config.py does not
+    # validate), equity_usd - floor_usd can be negative. Never let a negative
+    # sweep inflate tradable equity above actual equity or drive reserved_usd
+    # negative.
+    sweep = max(0.0, equity_usd - floor_usd)
     return (floor_usd, reserved_usd + sweep)
 
 
