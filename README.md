@@ -4,7 +4,7 @@
 
 1. `python -m venv .venv`
 2. `.venv\Scripts\pip install -r requirements.txt`
-3. Copy `config.example.yaml` to `config.yaml` and `.env.example` to `.env`, fill in your Anthropic API key and Telegram bot token/chat ID.
+3. Copy `config.example.yaml` to `config.yaml` and `.env.example` to `.env`, fill in your Anthropic API key. Telegram is optional -- leave `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` blank and the bot prints trade/error alerts to the console (captured in `cycle.log`) instead.
 4. Run once by hand to confirm it works: `.venv\Scripts\python main.py`
 5. Register the 10-minute schedule (run once, as your own user, from a PowerShell prompt in this folder):
 
@@ -27,6 +27,6 @@ Run `python calibrate.py` to see which mispricing thresholds and hold times actu
 ## Known limitations of this paper-trading phase
 
 - No live X/Twitter sentiment feed (Claude doesn't have that access) — mispricing signal comes from Polymarket's own price/volume momentum instead.
-- No daily Telegram summary yet — only trade and error alerts. A daily digest is a small follow-up.
+- No daily Telegram summary yet — only trade and error alerts, and only if Telegram is configured at all (otherwise they print to the console/`cycle.log`). A daily digest is a small follow-up.
 - `config.py` does not yet validate that `floor_usd <= ceiling_usd`. The defaults are safe; this must be added before any live-money phase.
 - Live trading (`executor_live.py`) is entirely out of scope until the paper week's results are reviewed.

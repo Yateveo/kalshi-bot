@@ -13,6 +13,20 @@ import storage
 STOP_FILE = "STOP"
 
 
+def notify(cfg, text: str) -> None:
+    """Send a notification via Telegram if configured, otherwise print it.
+
+    Telegram is optional: cfg.telegram_bot_token/telegram_chat_id default to
+    "" when not set in .env, so the bot runs fine with just console/log
+    output (cycle.log, via run_cycle.ps1's redirect) if you don't want to
+    set up a Telegram bot.
+    """
+    if cfg.telegram_bot_token and cfg.telegram_chat_id:
+        notifier.send_message(cfg.telegram_bot_token, cfg.telegram_chat_id, text)
+    else:
+        print(text)
+
+
 def compute_floor_reached(conn, current_equity_usd: float, floor_usd: float) -> bool:
     """Sticky latch: True once equity has ever reached floor_usd.
 
@@ -86,13 +100,10 @@ def run_cycle(cfg, conn, claude_client) -> dict:
             conn, cycle_id, market, decision, sizing.size_usd, mispricing_pct, ts,
         )
         trades_opened += 1
-        notifier.send_message(
-            cfg.telegram_bot_token, cfg.telegram_chat_id,
-            notifier.format_trade_alert(
-                market.question, decision.direction, sizing.size_usd,
-                decision.confidence, equity_usd, cfg.floor_usd, cfg.ceiling_usd,
-            ),
-        )
+        notify(cfg, notifier.format_trade_alert(
+            market.question, decision.direction, sizing.size_usd,
+            decision.confidence, equity_usd, cfg.floor_usd, cfg.ceiling_usd,
+        ))
 
     # 3. Apply the ceiling sweep and persist equity
     equity_usd, reserved_usd = risk_guard.apply_ceiling(equity_usd, reserved_usd, cfg.ceiling_usd, cfg.floor_usd)
@@ -121,10 +132,7 @@ def main() -> None:
         result = run_cycle(cfg, conn, claude_client)
         print(result)
     except Exception as exc:
-        notifier.send_message(
-            cfg.telegram_bot_token, cfg.telegram_chat_id,
-            notifier.format_error_alert(1, str(exc)),
-        )
+        notify(cfg, notifier.format_error_alert(1, str(exc)))
         raise
 
 

@@ -44,6 +44,6 @@ def load_config(yaml_path: str = "config.yaml", env_path: str = ".env") -> Confi
         ceiling_usd=raw["ceiling_usd"],
         stop_loss_pct=raw["stop_loss_pct"],
         anthropic_api_key=os.environ["ANTHROPIC_API_KEY"],
-        telegram_bot_token=os.environ["TELEGRAM_BOT_TOKEN"],
-        telegram_chat_id=os.environ["TELEGRAM_CHAT_ID"],
+        telegram_bot_token=os.environ.get("TELEGRAM_BOT_TOKEN", ""),
+        telegram_chat_id=os.environ.get("TELEGRAM_CHAT_ID", ""),
     )

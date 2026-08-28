@@ -40,6 +40,11 @@ class FakeCfg:
     telegram_chat_id = "chat"
 
 
+class FakeCfgNoTelegram(FakeCfg):
+    telegram_bot_token = ""
+    telegram_chat_id = ""
+
+
 def test_run_cycle_opens_a_trade_and_records_equity(monkeypatch):
     import main as main_module
 
@@ -144,3 +149,27 @@ def test_compute_floor_reached_latches_true_and_survives_a_later_dip():
     # cycle 3: a later losing streak drops equity back below the floor --
     # the latch must stay True (sticky), not un-latch
     assert main_module.compute_floor_reached(conn, current_equity_usd=35.0, floor_usd=50.0) is True
+
+
+def test_run_cycle_prints_instead_of_telegram_when_not_configured(monkeypatch, capsys):
+    import main as main_module
+
+    conn = storage.init_db(":memory:")
+    markets = [scanner.Market("0x1", "Will X happen?", 0.42, 15000.0, 0.30, "r")]
+    monkeypatch.setattr(main_module.scanner, "fetch_open_markets", lambda: markets)
+
+    send_calls = []
+    monkeypatch.setattr(
+        main_module.notifier, "send_message",
+        lambda *a, **k: send_calls.append((a, k)),
+    )
+
+    fake_client = FakeClient([
+        {"trade": True, "direction": "yes", "confidence": 0.8, "rationale": "clear edge"},
+    ])
+
+    main_module.run_cycle(FakeCfgNoTelegram(), conn, fake_client)
+
+    assert send_calls == []  # Telegram never called
+    captured = capsys.readouterr()
+    assert "Will X happen?" in captured.out  # trade alert went to stdout instead
