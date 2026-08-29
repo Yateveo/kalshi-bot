@@ -13,7 +13,11 @@ ISPs started blocking it. Kalshi is CFTC-regulated and available in Czech Republ
 5. Register the 10-minute schedule (run once, as your own user, from a PowerShell prompt in this folder):
 
    ```powershell
-   $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$PWD\run_cycle.ps1`""
+   # Launches through run_cycle_hidden.vbs rather than calling powershell.exe
+   # directly -- Task Scheduler + powershell.exe's own -WindowStyle Hidden is
+   # unreliable and can still flash/show a console window; wscript.exe's
+   # Run(..., 0, False) reliably doesn't.
+   $action = New-ScheduledTaskAction -Execute "wscript.exe" -Argument "`"$PWD\run_cycle_hidden.vbs`""
    $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 10) -RepetitionDuration (New-TimeSpan -Days 3650)
    Register-ScheduledTask -TaskName "KalshiPaperBot" -Action $action -Trigger $trigger -Description "Runs the Kalshi paper-trading cycle every 10 minutes"
    ```
