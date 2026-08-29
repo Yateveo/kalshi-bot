@@ -11,7 +11,10 @@ DECISION_TOOL = {
             "trade": {"type": "boolean", "description": "Whether to trade this market."},
             "direction": {"type": "string", "enum": ["yes", "no"]},
             "confidence": {"type": "number", "minimum": 0, "maximum": 1},
-            "rationale": {"type": "string"},
+            "rationale": {
+                "type": "string",
+                "description": "One short sentence (under 20 words) explaining the decision. Output tokens cost more than input tokens -- be terse.",
+            },
         },
         "required": ["trade", "direction", "confidence", "rationale"],
     },
@@ -27,10 +30,14 @@ class Decision:
     rationale: str
 
 
+RESOLUTION_CRITERIA_MAX_CHARS = 200
+
+
 def build_prompt(market: Market, mispricing_pct: float) -> str:
+    resolution_criteria = market.resolution_criteria[:RESOLUTION_CRITERIA_MAX_CHARS]
     return (
         f"Market: {market.question}\n"
-        f"Resolution criteria: {market.resolution_criteria}\n"
+        f"Resolution criteria: {resolution_criteria}\n"
         f"Current YES price: {market.yes_price}\n"
         f"Previous reference price: {market.price_reference}\n"
         f"24h volume: {market.volume_24h}\n"
@@ -43,7 +50,7 @@ def build_prompt(market: Market, mispricing_pct: float) -> str:
 def analyze_market(client, market: Market, mispricing_pct: float) -> Decision:
     response = client.messages.create(
         model="claude-haiku-4-5",
-        max_tokens=1024,
+        max_tokens=200,  # decision is 4 small fields + a capped one-sentence rationale
         tools=[DECISION_TOOL],
         tool_choice={"type": "tool", "name": "record_decision"},
         messages=[{"role": "user", "content": build_prompt(market, mispricing_pct)}],
