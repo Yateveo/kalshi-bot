@@ -14,7 +14,7 @@ ISPs started blocking it. Kalshi is CFTC-regulated and available in Czech Republ
 
    ```powershell
    $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$PWD\run_cycle.ps1`""
-   $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 10) -RepetitionDuration ([TimeSpan]::MaxValue)
+   $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 10) -RepetitionDuration (New-TimeSpan -Days 3650)
    Register-ScheduledTask -TaskName "KalshiPaperBot" -Action $action -Trigger $trigger -Description "Runs the Kalshi paper-trading cycle every 10 minutes"
    ```
 
