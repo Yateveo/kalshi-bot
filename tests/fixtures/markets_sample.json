@@ -1,18 +1,29 @@
-[
-  {
-    "id": "0x1",
-    "question": "Will it rain in NYC tomorrow?",
-    "outcomePrices": ["0.42"],
-    "volume24hr": 15000.0,
-    "oneHourPriceChange": "0.30",
-    "description": "Resolves YES if NOAA reports measurable precipitation."
-  },
-  {
-    "id": "0x2",
-    "question": "Will BTC close above $120k on Friday?",
-    "outcomePrices": ["0.55"],
-    "volume24hr": 500000.0,
-    "oneHourPriceChange": "0.54",
-    "description": "Resolves YES if Coinbase BTC-USD close >= 120000 on Friday."
-  }
-]
+{
+  "cursor": "",
+  "markets": [
+    {
+      "ticker": "KXHIGHNY-26AUG30-T80",
+      "title": "Will it hit 80F or above in NYC tomorrow?",
+      "yes_bid_dollars": "0.4000",
+      "yes_ask_dollars": "0.4400",
+      "last_price_dollars": "0.4200",
+      "previous_price_dollars": "0.0000",
+      "previous_yes_bid_dollars": "0.0000",
+      "previous_yes_ask_dollars": "0.0000",
+      "volume_24h_fp": "15000.00",
+      "rules_primary": "Resolves YES if NOAA reports a high temperature of 80F or above in NYC."
+    },
+    {
+      "ticker": "KXBTCZ-26AUG30-T120000",
+      "title": "Will BTC close above $120k on Friday?",
+      "yes_bid_dollars": "0.5300",
+      "yes_ask_dollars": "0.5700",
+      "last_price_dollars": "0.5500",
+      "previous_price_dollars": "0.0000",
+      "previous_yes_bid_dollars": "0.0000",
+      "previous_yes_ask_dollars": "0.0000",
+      "volume_24h_fp": "500000.00",
+      "rules_primary": "Resolves YES if Coinbase BTC-USD close >= 120000 on Friday."
+    }
+  ]
+}

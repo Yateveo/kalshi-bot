@@ -32,7 +32,7 @@ def build_prompt(market: Market, mispricing_pct: float) -> str:
         f"Market: {market.question}\n"
         f"Resolution criteria: {market.resolution_criteria}\n"
         f"Current YES price: {market.yes_price}\n"
-        f"Price 1h ago: {market.price_1h_ago}\n"
+        f"Previous reference price: {market.price_reference}\n"
         f"24h volume: {market.volume_24h}\n"
         f"Computed mispricing score: {mispricing_pct:.1f}%\n\n"
         "Decide whether this mispricing represents a genuine trading edge "

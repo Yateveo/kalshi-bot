@@ -1,0 +1,8 @@
+{
+  "cursor": "",
+  "trades": [
+    {"ticker": "KXHIGHNY-26AUG30-T80", "yes_price_dollars": "0.3000", "created_time": "2026-08-30T09:00:00Z"},
+    {"ticker": "KXHIGHNY-26AUG30-T80", "yes_price_dollars": "0.4200", "created_time": "2026-08-30T09:45:00Z"},
+    {"ticker": "KXBTCZ-26AUG30-T120000", "yes_price_dollars": "0.5400", "created_time": "2026-08-30T09:30:00Z"}
+  ]
+}
