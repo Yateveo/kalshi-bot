@@ -35,13 +35,8 @@ def build_prompt(market: Market, mispricing_pct: float) -> str:
         f"Previous reference price: {market.price_reference}\n"
         f"24h volume: {market.volume_24h}\n"
         f"Computed mispricing score: {mispricing_pct:.1f}%\n\n"
-        "Decide whether this mispricing is worth trading. Default toward "
-        "trading when there's a plausible fundamental or liquidity-based "
-        "reason for the move and reasonable volume -- moderate uncertainty "
-        "alone isn't a reason to pass, since a probabilistic edge doesn't "
-        "require certainty. Only pass when there's essentially no real "
-        "signal (near-zero volume, or no plausible driver for the move at "
-        "all). Call record_decision with your answer."
+        "Decide whether this mispricing represents a genuine trading edge "
+        "or just noise. Call record_decision with your answer."
     )
 
 
