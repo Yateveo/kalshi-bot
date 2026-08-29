@@ -42,7 +42,7 @@ def build_prompt(market: Market, mispricing_pct: float) -> str:
 
 def analyze_market(client, market: Market, mispricing_pct: float) -> Decision:
     response = client.messages.create(
-        model="claude-sonnet-4-5",
+        model="claude-haiku-4-5",
         max_tokens=1024,
         tools=[DECISION_TOOL],
         tool_choice={"type": "tool", "name": "record_decision"},
