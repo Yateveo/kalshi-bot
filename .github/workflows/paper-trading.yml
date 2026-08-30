@@ -1,0 +1,48 @@
+name: Kalshi paper-trading cycle
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  run-cycle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Check for STOP file
+        id: stop_check
+        run: |
+          if [ -f STOP ]; then
+            echo "stopped=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "stopped=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run cycle
+        if: steps.stop_check.outputs.stopped == 'false'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python main.py
+
+      - name: Commit updated state
+        if: steps.stop_check.outputs.stopped == 'false'
+        run: |
+          git config user.name "kalshi-paper-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add trading.db
+          git diff --cached --quiet || git commit -m "cycle: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          git push
